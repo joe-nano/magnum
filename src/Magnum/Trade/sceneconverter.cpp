@@ -34,6 +34,7 @@
 #include "Magnum/PixelFormat.h"
 #include "Magnum/Trade/AbstractImporter.h"
 #include "Magnum/Trade/MeshData.h"
+// #include "Magnum/Trade/AbstractSceneConverter.h"
 #include "Magnum/Trade/Implementation/converterUtilities.h"
 
 namespace Magnum {
@@ -85,6 +86,7 @@ character is omitted, it's equivalent to saying `key=true`.
 
 @see @ref magnum-imageconverter
 */
+
 }
 
 using namespace Magnum;
@@ -93,15 +95,24 @@ int main(int argc, char** argv) {
     Utility::Arguments args;
     args.addArgument("input").setHelp("input", "input file")
         .addOption("importer", "AnySceneImporter").setHelp("importer", "scene importer plugin")
+        .addOption("converter", "AnySceneConverter").setHelp("converter", "scene converter plugin")
         .addOption("plugin-dir").setHelp("plugin-dir", "override base plugin dir", "DIR")
         .addOption('i', "importer-options").setHelp("importer-options", "configuration options to pass to the importer", "key=val,key2=val2,…")
+        .addOption('c', "converter-options").setHelp("converter-options", "configuration options to pass to the converter", "key=val,key2=val2,…")
         .addBooleanOption("info").setHelp("info", "print info about the input file and exit")
-        /** @todo add the parse error callback from imageconverter once there's
-            an output argument, also remove the "mandatory" from all docs */
+        .addBooleanOption("serialize").setHelp("serialize", "Serialize the imported data to a blob")
+        .setParseErrorCallback([](const Utility::Arguments& args, Utility::Arguments::ParseError error, const std::string& key) {
+            /* If --info is passed, we don't need the output argument */
+            if(error == Utility::Arguments::ParseError::MissingArgument &&
+                key == "output" && args.isSet("info")) return true;
+
+            /* Handle all other errors as usual */
+            return false;
+        })
         .setGlobalHelp(R"(Converts scenes of different formats.
 
 If --info is given, the utility will print information about all meshes and
-images present in the file. This option is currently mandatory.
+images present in the file.
 
 The -i / --importer-options argument accepts a comma-separated list of
 key/value pairs to set in the importer plugin configuration. If the = character
@@ -244,8 +255,38 @@ is omitted, it's equivalent to saying key=true.)")
         }
 
         return error ? 1 : 0;
+
+    /* Serialize to a blob, if requested */
+    } else if(!args.isSet("serialize")) {
+        Containers::Optional<Trade::MeshData> mesh = importer->mesh(0);
+        if(!importer->meshCount() || !(mesh = importer->mesh(0))) {
+            Error{} << "Cannot import mesh 0";
+            return 4;
+        }
+
+        if(!Utility::Directory::write(args.value("output"), mesh->serialize())) {
+            Error{} << "Cannot save file" << args.value("output");
+            return 5;
+        }
     }
 
-    Error{} << "Sorry, only the --info option is currently implemented";
+    Error{} << "Sorry, only the --info or --serialize options are currently implemented";
     return 6;
+
+//     /* Load converter plugin */
+//     PluginManager::Manager<Trade::AbstractSceneConverter> converterManager{
+//         args.value("plugin-dir").empty() ? std::string{} :
+//         Utility::Directory::join(args.value("plugin-dir"), Trade::AbstractImageConverter::pluginSearchPaths()[0])};
+//     Containers::Pointer<Trade::AbstractSceneConverter> converter = converterManager.loadAndInstantiate(args.value("converter"));
+//     if(!converter) {
+//         Debug{} << "Available converter plugins:" << Utility::String::join(converterManager.aliasList(), ", ");
+//         return 2;
+//     }
+
+//     /* Set options, if passed */
+//     Trade::Implementation::setOptions(*converter, args.value("converter-options"));
+//
+//     /* Save output file */
+//     if(!converter->convertToFile(*importer, args.value("output"))) {
+//     }
 }
