@@ -164,6 +164,12 @@ struct MeshDataTest: TestSuite::Tester {
     void releaseIndexData();
     void releaseAttributeData();
     void releaseVertexData();
+
+    void deserialize();
+    void deserializeInvalid();
+    void serialize();
+    void serializeDeserialized();
+    void serializeIntoTooSmall();
 };
 
 struct {

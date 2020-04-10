@@ -706,7 +706,7 @@ the generic @ref MeshPrimitive enum, similarly see also
 implementation-specific @ref VertexFormat values.
 @see @ref AbstractImporter::mesh()
 */
-class MAGNUM_TRADE_EXPORT MeshData {
+class MAGNUM_TRADE_EXPORT MeshData: public DataChunk {
     public:
         enum: UnsignedInt {
             /**
@@ -715,6 +715,34 @@ class MAGNUM_TRADE_EXPORT MeshData {
              */
             ImplicitVertexCount = ~UnsignedInt{}
         };
+
+        /**
+         * @brief Try to deserialize from a memory-mappable representation
+         *
+         * If @p data is a valid serialized representation of @ref MeshData
+         * matching current platform, returns it reinterpreted as a
+         * @ref MeshData pointer. On failure prints an error message and
+         * returns @cpp nullptr @ce. The caller is expected to explicitly check
+         * the return value, see @ref from() for an alternative.
+         * @see @ref serialize()
+         */
+        static const MeshData* deserialize(Containers::ArrayView<const void> data);
+
+        /** @overload */
+        static MeshData* deserialize(Containers::ArrayView<void> data);
+
+        /**
+         * @brief Deserialize from a memory-mappable representation
+         *
+         * Same as @ref deserialize(), but the function asserts if @p data is
+         * not a valid chunk. Use when you don't need / want to explicitly
+         * handle validation errors.
+         * @see @ref serialize()
+         */
+        static const MeshData& from(Containers::ArrayView<const void> data);
+
+        /** @overload */
+        static MeshData& from(Containers::ArrayView<void> data);
 
         /**
          * @brief Construct an indexed mesh data
@@ -989,7 +1017,7 @@ class MAGNUM_TRADE_EXPORT MeshData {
          * @see @ref isIndexed(), @ref indexCount(), @ref indexType(),
          *      @ref indices(), @ref mutableIndexData(), @ref releaseIndexData()
          */
-        Containers::ArrayView<const char> indexData() const & { return _indexData; }
+        Containers::ArrayView<const char> indexData() const &;
 
         /** @brief Taking a view to a r-value instance is not allowed */
         Containers::ArrayView<const char> indexData() const && = delete;
@@ -1020,7 +1048,7 @@ class MAGNUM_TRADE_EXPORT MeshData {
          * use this function only if you *really* know what are you doing.
          * @see @ref MeshAttributeData::isOffsetOnly()
          */
-        Containers::ArrayView<const MeshAttributeData> attributeData() const & { return _attributes; }
+        Containers::ArrayView<const MeshAttributeData> attributeData() const &;
 
         /** @brief Taking a view to a r-value instance is not allowed */
         Containers::ArrayView<const MeshAttributeData> attributeData() && = delete;
@@ -1034,7 +1062,7 @@ class MAGNUM_TRADE_EXPORT MeshData {
          *      @ref attributeFormat(), @ref attribute(),
          *      @ref mutableVertexData(), @ref releaseVertexData()
          */
-        Containers::ArrayView<const char> vertexData() const & { return _vertexData; }
+        Containers::ArrayView<const char> vertexData() const &;
 
         /** @brief Taking a view to a r-value instance is not allowed */
         Containers::ArrayView<const char> vertexData() const && = delete;
@@ -1770,6 +1798,30 @@ class MAGNUM_TRADE_EXPORT MeshData {
          */
         const void* importerState() const { return _importerState; }
 
+        /**
+         * @brief Size of serialized data
+         *
+         * Amount of bytes written by @ref serializeInto() or @ref serialize().
+         */
+        std::size_t serializedSize() const;
+
+        /**
+         * @brief Serialize to a memory-mappable representation
+         *
+         * @see @ref serializeInto(), @ref deserialize()
+         */
+        Containers::Array<char> serialize() const;
+
+        /**
+         * @brief Serialize to a memory-mappable representation into an existing array
+         * @param[out] out      Where to write the output
+         * @return  Number of bytes written. Same as @ref serializedSize().
+         *
+         * Expects that @p data is at least @ref serializedSize().
+         * @see @ref serialize(), @ref deserialize()
+         */
+        std::size_t serializeInto(Containers::ArrayView<char> out) const;
+
     private:
         /* For custom deleter checks. Not done in the constructors here because
            the restriction is pointless when used outside of plugin
@@ -1778,6 +1830,10 @@ class MAGNUM_TRADE_EXPORT MeshData {
 
         /* Internal helper that doesn't assert, unlike attributeId() */
         UnsignedInt attributeFor(MeshAttribute name, UnsignedInt id) const;
+
+        /* Returns the real pointer to the attribute data array also for
+           serialized memory */
+        const MeshAttributeData* attributeDataInternal() const;
 
         /* Like attribute(), but returning just a 1D view */
         Containers::StridedArrayView1D<const void> attributeDataViewInternal(const MeshAttributeData& attribute) const;
