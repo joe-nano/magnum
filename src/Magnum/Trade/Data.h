@@ -310,6 +310,24 @@ class MAGNUM_TRADE_EXPORT DataChunk {
          */
         constexpr const DataChunkHeader& dataChunkHeader() const { return _header; }
 
+//         /**
+//          * @brief Get next data chunk
+//          * @param data      The full range of the data
+//          *
+//          * Expects the @cpp this @ce pointer is contained in @p data and the
+//          * data chunk is valid. Returns a pointer to the immediately following
+//          * data chunk or @cpp nullptr @ce if there's none. Note that the
+//          * function doesn't check for validity of the next data chunk.
+//          * @see @ref validateDataChunk()
+//          */
+//         // TODO: no this should fail when the next is not valid... but what to
+//         // return? or return data.end() when there's no next? but void has no
+//         // end :(
+//         const DataChunk* nextDataChunk(Containers::ArrayView<const void> data) const;
+//
+//         /** @overload */
+//         DataChunk* nextDataChunk(Containers::ArrayView<void> data) const;
+
         /**
          * @brief Size of serialized data
          *
